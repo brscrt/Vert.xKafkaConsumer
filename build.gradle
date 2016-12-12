@@ -1,0 +1,68 @@
+buildscript {
+  repositories {
+    mavenCentral()
+  }
+  dependencies {
+     classpath "se.transmode.gradle:gradle-docker:1.2"
+  }
+}
+
+apply plugin: 'application'
+apply plugin: 'docker'
+ 
+    
+repositories {
+    mavenCentral()
+}
+
+mainClassName = 'kafka.MyConsumer'
+                           
+dependencies {
+    compile group: 'org.apache.kafka', name: 'kafka_2.11', version: '0.10.0.0'
+    compile group: 'io.vertx', name: 'vertx-core', version: '3.2.1'
+    compile 'org.slf4j:log4j-over-slf4j:1.7.12'
+ 	compile ("org.apache.kafka:kafka-clients:0.9.0.0") {
+      exclude group: 'com.sun.jdmk', module: 'jmxtools'
+      exclude group: 'com.sun.jmx', module: 'jmxri'
+      exclude group: 'org.slf4j', module: 'slf4j-log4j12'
+      exclude group: 'log4j', module: 'log4j'
+ 		 }
+   	compile 'io.vertx:vertx-mongo-client:3.3.3'    
+}
+
+task copyConf(type: Copy) {
+    from System.getProperty('user.dir') + "/conf"
+    into "$buildDir/conf"
+}
+
+task createConf {
+    def conf = file("$buildDir/conf")
+    outputs.dir conf
+    doLast {
+        conf.mkdirs()
+        copyConf.execute()
+    }
+}
+
+distributions {
+    main {
+        contents {
+            from(createConf) { into "/conf" }
+        }
+    }
+}
+
+docker {
+    baseImage = 'brscrt/java-8'
+    maintainer = 'Baris Cirit "brscrt@gmail.com"'
+}
+
+distDocker {
+    tag = 'brscrt/vertxconsumer'
+      version = 'latest'
+    
+    push = project.hasProperty('push') ? project.property('push') : false
+} 
+
+
+task wrapper(type: Wrapper) { gradleVersion = '2.14' }
